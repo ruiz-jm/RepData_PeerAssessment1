@@ -7,19 +7,294 @@ output:
 
 
 ## Loading and preprocessing the data
+Show any code that is needed to
 
+1. Load the data (i.e. read.csv())
+
+2. Process/transform the data (if necessary) into a format suitable for your
+analysis
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(grid)
+data<-read.csv('activity/activity.csv')
+head(data)
+```
 
 
 ## What is mean total number of steps taken per day?
+For this part of the assignment, you can ignore the missing values in the dataset.
 
+1. Make a histogram of the total number of steps taken each day
+
+
+```{r}
+steps.tot<-tapply(data$steps,data$date,sum)
+ #steps.tot
+
+h1<-hist(steps.tot,col='blue',xlab='total of steps by day',main='total of steps by day')
+h1
+```
+
+2. Calculate and report the mean and median total number of steps taken
+per day
+
+```{r}
+steps.mean1<-aggregate(data = data, steps ~ date, FUN = mean)
+steps.median1<-aggregate(data = data, steps ~ date, FUN = median)
+
+
+bad<-is.na(data$steps)
+data2<-data[!bad,]
+steps.mean<-tapply(data2$steps,data2$date,mean)
+steps.median<-tapply(data2$steps,data2$date,median)
+
+```
+
+The means of total number of steps taken
+per day are the following
+```{r}
+steps.mean1
+```
+```{r}
+plot(steps.mean1, main='means per day')
+```
+
+
+
+The median of total number of steps taken
+per day are the following
+
+```{r}
+steps.median1
+```
+```{r}
+plot(steps.median1, main='medians per day')
+```
 
 
 ## What is the average daily activity pattern?
 
+1. Make a time series plot (i.e. type = "l") of the 5-minute interval (x-axis)
+and the average number of steps taken, averaged across all days (y-axis)
+
+
+
+```{r}
+ 
+steps.mean.int<-tapply(data2$steps,data2$interval,mean)
+ 
+
+len1<-length(steps.mean.int)
+
+intervals<-data2$interval[1:len1]
+plot(steps.mean.int~intervals,type='l',ylab='average steps per interval')
+
+```
+
+
+2. Which 5-minute interval, on average across all the days in the dataset,
+contains the maximum number of steps?
+```{r}
+df<-data.frame(steps.mean.int,intervals)
+
+mx<-max(df$steps.mean.int)
+
+mx.int<-df$intervals[steps.mean.int==mx]
+#The interval with maximum steps is the interval
+mx.int
+# with a value of steps
+mx
+
+```
+The interval with maximum steps is the interval `r mx.int`
+with a value of steps `r mx`
 
 
 ## Imputing missing values
+1. Calculate and report the total number of missing values in the dataset
+(i.e. the total number of rows with NAs)
 
 
+
+```{r}
+# total number of rows with  NAs
+s<-sum(!complete.cases(data))
+s
+```
+
+The total number of missing values in the dataset is `r s`
+
+
+2. Devise a strategy for filling in all of the missing values in the dataset. The
+strategy does not need to be sophisticated. For example, you could use
+the mean/median for that day, or the mean for that 5-minute interval, etc.
+
+
+
+
+ We will use the mean of the day or interval to fill the missing values.
+
+
+3. Create a new dataset that is equal to the original dataset but with the
+missing data filled in.
+
+ We create a new dataset that is equal to the original dataset but with the
+missing data filled in.
+```{r}
+#we will use the mean of the day or interval to fill the missing values.
+
+#
+
+len<-length(data$interval)
+
+
+
+
+dfa <- aggregate(data = data, steps ~ interval, FUN = mean)
+ 
+
+df3 <- merge(x = data, y = dfa, by = "interval", suffixes = c("",".int.mean"))
+
+
+
+len<-length(df3$steps)
+
+
+for (i in 1:len){
+  
+  if(is.na(df3[i,2])){
+  
+       
+     
+        df3[i,2]<-df3[i,4]
+        
+           
+    
+          }
+   
+    }
+
+
+head(df3,30)
+```
+
+4. Make a histogram of the total number of steps taken each day and Calculate
+and report the mean and median total number of steps taken per day. Do
+these values differ from the estimates from the first part of the assignment?
+What is the impact of imputing missing data on the estimates of the total
+daily number of steps?
+
+
+We make a histogram of the total number of steps taken each day.
+
+
+```{r}
+steps.tot2<-tapply(df3$steps,df3$date,sum)
+ #steps.tot2
+
+h2<-hist(steps.tot2,col='red')
+h2
+
+
+```
+
+We calculate the mean and median total number of steps taken per day.
+
+```{r}
+steps.mean2<-aggregate(data = df3, steps ~ date, FUN = mean)
+steps.median2<-aggregate(data = df3, steps ~ date, FUN = median)
+
+```
+the means are 
+
+```{r}
+steps.mean2
+
+```
+
+the medians are 
+```{r}
+steps.median2
+```
+
+ Do these values differ from the estimates from the first part of the assignment?
+ 
+ Yes they differ. We plotted them against each other and we see that the means without missing values are more dispersed. While the medians, with imput data reach some values greater than 30.
+```{r}
+par(mfrow=c(2,2))
+plot(steps.mean1 , main='means with missing data',ylim=c(0,80))
+plot(steps.mean2,  main='means with imput missing data',ylim=c(0,80))
+plot(steps.median1,  main='medians with missing data',ylim=c(0,35))
+plot(steps.median2,  main='medians with imput missing data',ylim=c(0,35))
+```
+ 
+
+What is the impact of imputing missing data on the estimates of the total
+daily number of steps?
+
+
+We see a clear difference by comparing both histograms. With imput missing data we have more frequency of total steps. 
+
+```{r}
+par(mfrow=c(1,2))
+plot(h1,col='blue',main='With missing data',xlab='total steps per day',ylim=c(0,40))
+plot(h2,col='red',main='With imput missing data',xlab='total steps per day',ylim=c(0,40))
+```
+ 
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+1. Create a new factor variable in the dataset with two levels – “weekday”
+and “weekend” indicating whether a given date is a weekday or weekend
+day.
+
+We create a new dataset with the required indicator
+```{r}
+df3$date <- as.Date(df3$date)
+ 
+weekd <- c('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday')
+
+  df3$Week.Day <- c('weekend', 'weekday')[(weekdays(df3$date) %in% weekd)+1L]       
+        head(df3)
+```
+2. Make a panel plot containing a time series plot (i.e. type = "l") of the
+5-minute interval (x-axis) and the average number of steps taken, averaged
+across all weekday days or weekend days (y-axis). The plot should look
+something like the following, which was creating using simulated data:
+
+We show the panel plot.
+
+```{r}
+dfwknd<-  df3[df3$Week.Day=='weekend',]
+         dfmidwk<-df3[df3$Week.Day=='weekday',]
+         
+         
+         
+        dfwknd.mean <- aggregate( data=dfwknd , steps ~ interval, FUN = mean)
+          dfmidwk.mean <- aggregate(data=dfmidwk , steps ~ interval, FUN = mean)
+        #  head(dfwknd.mean)
+    df.both<-      merge(dfwknd.mean,dfmidwk.mean,by='interval',suffixes = c(".weekend",".midweek"))
+     #  head(df.both)
+       
+ 
+       
+       p1 <- ggplot( df.both, aes(interval, steps.midweek)) + geom_line() + theme_minimal()+ theme(axis.title.x = element_blank(), axis.text.x = element_blank())
+
+       p2 <- ggplot( df.both,aes(interval,steps.weekend)) + geom_line() + theme_minimal() + theme(axis.title.x = element_blank(),axis.text.x = element_text(angle=90))
+       
+
+grid.newpage()
+grid.draw(rbind(ggplotGrob(p1), ggplotGrob(p2), size = "last"))
+       
+ 
+```
+
+We observe a difference between weekends and midweek days. Althugh the maxima are around the same intervals, overall, means of intervals above 1000 are greater on the weekends.
+```{r echo=FALSE}
+plots.dir.path <- list.files(tempdir(), pattern="rs-graphics", full.names = TRUE); 
+plots.png.paths <- list.files(plots.dir.path, pattern=".png", full.names = TRUE)
+file.copy(from=plots.png.paths, to="figure/directory")
+```
+
